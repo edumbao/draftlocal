@@ -103,7 +103,9 @@ Not every writing problem needs a language model.
 
 ## Sponsors
 
-Https://targetron.com and https://seovapractice.com/ sponsor this project in collaboration with the Entrep Communities in Davao City, Philippines, and are part of the Ed Lab's project at https://edumbao.com/lab/
+This project is sponsored by [Targetron](https://targetron.com/) and [SEO VA Practice](https://seovapractice.com/), in collaboration with the Entrep Communities in Davao City, Philippines.
+
+DraftLocal is also part of the [Ed Lab](https://edumbao.com/lab/) project.
 
 ## Current local AI model
 
