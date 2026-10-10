@@ -190,8 +190,7 @@ export default function Home() {
     ];
 
     const passedChecks = qualityChecks.filter(Boolean).length;
-    const attentionChecks =
-      qualityChecks.length - passedChecks;
+    const attentionChecks = qualityChecks.length - passedChecks;
 
     setContentResults({
       wordCount: words.length,
@@ -264,8 +263,7 @@ export default function Home() {
     ];
 
     const passedChecks = checks.filter(Boolean).length;
-    const attentionChecks =
-      checks.length - passedChecks;
+    const attentionChecks = checks.length - passedChecks;
 
     setReadmeResults({
       hasPurpose,
@@ -651,8 +649,20 @@ ${shortExcerpt}`,
                 />
 
                 <StatusCard
-                  label="Current session offline review"
+                  label="Offline after first download"
                   value="Ready"
+                  status="pass"
+                />
+
+                <StatusCard
+                  label="First setup"
+                  value="Internet required"
+                  status="info"
+                />
+
+                <StatusCard
+                  label="After model download"
+                  value="Offline review supported"
                   status="pass"
                 />
               </div>
@@ -664,8 +674,9 @@ ${shortExcerpt}`,
                   </p>
 
                   <p className="mt-1 text-sm text-green-200/70">
-                    The model is already loaded, so local clarity review can
-                    continue without a live cloud connection.
+                    The model is available from browser storage, so local
+                    clarity review can continue without a live cloud
+                    connection.
                   </p>
                 </div>
               )}
@@ -718,7 +729,7 @@ ${shortExcerpt}`,
             Local processing:
           </strong>{" "}
           Rule-based checks run entirely in your browser. Local AI inference
-          also runs on this device after the model has been loaded.
+          also runs on this device after the model has been downloaded.
         </div>
       </div>
     </main>
