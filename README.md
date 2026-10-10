@@ -101,6 +101,10 @@ This separation is intentional.
 
 Not every writing problem needs a language model.
 
+## Sponsors
+
+Https://targetron.com and https://seovapractice.com/ sponsor this project in collaboration with the Entrep Communities in Davao City, Philippines, and are part of the Ed Lab's project at https://edumbao.com/lab/
+
 ## Current local AI model
 
 DraftLocal currently uses:
