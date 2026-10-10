@@ -96,6 +96,13 @@ export default function Home() {
     [keyword]
   );
 
+  function changeMode(nextMode: ReviewMode) {
+    setMode(nextMode);
+    setAiReview("");
+    setAiReviewError("");
+    setAiReviewStatus("idle");
+  }
+
   function analyzeContent() {
     const cleanContent = content.trim();
 
@@ -316,7 +323,7 @@ export default function Home() {
     }
   }
 
-  async function reviewClarityLocally() {
+  async function runLocalAIReview() {
     if (!engineRef.current) {
       setAiReviewStatus("error");
       setAiReviewError("Enable Local AI first.");
@@ -343,6 +350,30 @@ export default function Home() {
       .slice(0, 180)
       .join(" ");
 
+    const systemPrompt =
+      mode === "content"
+        ? "You are a concise writing reviewer for beginner-friendly articles. Focus only on clarity. Do not rewrite the text. Do not add information that is not present."
+        : "You are a concise technical documentation reviewer. Focus on whether a beginner could follow the instructions. Do not rewrite the README. Do not invent missing technical details.";
+
+    const userPrompt =
+      mode === "content"
+        ? `Review the writing below.
+
+Identify one thing that may confuse a beginner reader.
+
+Explain the problem in no more than two short sentences.
+
+Text:
+${shortExcerpt}`
+        : `Review the README excerpt below.
+
+Identify one instruction, assumption, or technical term that may make setup difficult for a beginner.
+
+Explain the problem in no more than two short sentences.
+
+README:
+${shortExcerpt}`;
+
     try {
       setAiReviewStatus("reviewing");
       setAiReview("");
@@ -353,19 +384,11 @@ export default function Home() {
           messages: [
             {
               role: "system",
-              content:
-                "You are a concise writing reviewer. Focus only on clarity for beginner readers. Do not rewrite the text. Do not add information that is not present.",
+              content: systemPrompt,
             },
             {
               role: "user",
-              content: `Review the text below.
-
-Identify one thing that may confuse a beginner.
-
-Explain the issue in no more than two short sentences.
-
-Text:
-${shortExcerpt}`,
+              content: userPrompt,
             },
           ],
           temperature: 0.2,
@@ -388,10 +411,20 @@ ${shortExcerpt}`,
       setAiReviewError(
         error instanceof Error
           ? error.message
-          : "The local clarity review failed."
+          : "The local review failed."
       );
     }
   }
+
+  const aiButtonLabel =
+    mode === "content"
+      ? "Review content clarity locally"
+      : "Review README guidance locally";
+
+  const aiFeedbackLabel =
+    mode === "content"
+      ? "Local AI content feedback"
+      : "Local AI README feedback";
 
   return (
     <main className="min-h-screen bg-zinc-950 px-6 py-16 text-white">
@@ -441,7 +474,7 @@ ${shortExcerpt}`,
           <div className="mb-6 flex gap-3">
             <button
               type="button"
-              onClick={() => setMode("content")}
+              onClick={() => changeMode("content")}
               className={
                 mode === "content"
                   ? "rounded-lg bg-white px-4 py-2 text-sm font-medium text-black"
@@ -453,7 +486,7 @@ ${shortExcerpt}`,
 
             <button
               type="button"
-              onClick={() => setMode("readme")}
+              onClick={() => changeMode("readme")}
               className={
                 mode === "readme"
                   ? "rounded-lg bg-white px-4 py-2 text-sm font-medium text-black"
@@ -576,7 +609,7 @@ ${shortExcerpt}`,
               </h2>
 
               <p className="mt-1 text-sm text-zinc-400">
-                Optional clarity feedback using a small model running on this
+                Optional feedback from a small language model running on this
                 device.
               </p>
             </div>
@@ -675,21 +708,32 @@ ${shortExcerpt}`,
 
                   <p className="mt-1 text-sm text-green-200/70">
                     The model is available from browser storage, so local
-                    clarity review can continue without a live cloud
-                    connection.
+                    review can continue without a live cloud connection.
                   </p>
                 </div>
               )}
 
+              <div className="mt-4 rounded-lg border border-zinc-700 bg-zinc-950 p-4">
+                <p className="text-sm font-medium text-zinc-200">
+                  Current AI task
+                </p>
+
+                <p className="mt-1 text-sm text-zinc-400">
+                  {mode === "content"
+                    ? "Check whether a short article excerpt may confuse a beginner reader."
+                    : "Check whether a short README excerpt contains an unclear instruction, assumption, or technical term."}
+                </p>
+              </div>
+
               <button
                 type="button"
-                onClick={reviewClarityLocally}
+                onClick={runLocalAIReview}
                 disabled={aiReviewStatus === "reviewing"}
                 className="mt-4 w-full rounded-lg border border-zinc-700 bg-zinc-950 px-4 py-3 font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {aiReviewStatus === "reviewing"
                   ? "Reviewing locally..."
-                  : "Review clarity locally"}
+                  : aiButtonLabel}
               </button>
             </>
           )}
@@ -697,7 +741,7 @@ ${shortExcerpt}`,
           {aiReviewStatus === "done" && (
             <div className="mt-5 rounded-lg border border-blue-900/60 bg-blue-950/20 p-4">
               <p className="text-sm font-medium text-blue-300">
-                Local AI clarity feedback
+                {aiFeedbackLabel}
               </p>
 
               <p className="mt-2 text-sm leading-6 text-zinc-300">
@@ -705,8 +749,8 @@ ${shortExcerpt}`,
               </p>
 
               <p className="mt-3 text-xs text-zinc-500">
-                This review uses only a short excerpt and may miss context from
-                the rest of the document.
+                This review uses only the first 180 words and may miss context
+                from the rest of the document.
               </p>
             </div>
           )}
@@ -714,7 +758,7 @@ ${shortExcerpt}`,
           {aiReviewStatus === "error" && (
             <div className="mt-5 rounded-lg border border-red-900/60 bg-red-950/30 p-4">
               <p className="font-medium text-red-300">
-                Clarity review could not run.
+                Local review could not run.
               </p>
 
               <p className="mt-2 text-sm text-red-200/70">
