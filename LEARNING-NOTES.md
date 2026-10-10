@@ -73,4 +73,6 @@ I may also experiment with reviewing selected text instead of always using the f
 
 ## Sponsors
 
-This project is sponsored by https://targetron.com and https://seovapractice.com/ in collaboration with the Entrep Communities in Davao City, Philippines, and is part of the Ed Lab's project at https://edumbao.com/lab/
+This project is sponsored by [Targetron](https://targetron.com/) and [SEO VA Practice](https://seovapractice.com/), in collaboration with the Entrep Communities in Davao City, Philippines.
+
+DraftLocal is also part of the [Ed Lab](https://edumbao.com/lab/) project.
