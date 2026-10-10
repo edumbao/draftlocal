@@ -1,36 +1,109 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# DraftLocal
 
-## Getting Started
+DraftLocal is a local-first writing reviewer for content and README files.
 
-First, run the development server:
+It combines rule-based checks with a small language model that runs in the browser using WebLLM.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+I built this as a learning project to understand local AI, browser-based inference, GitHub workflows, Next.js, and how AI can support technical writing without sending every draft to a cloud service.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## What DraftLocal does
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+DraftLocal currently has two review modes.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Content Review
 
-## Learn More
+Content Review checks:
 
-To learn more about Next.js, take a look at the following resources:
+- word count
+- paragraph count
+- heading count
+- target keyword in the title
+- target keyword in the first 100 words
+- target keyword in Markdown headings
+- long paragraphs
+- long sentences
+- internal Markdown links
+- external Markdown links
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+These checks run with normal browser code.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+DraftLocal can also run a local AI clarity review on a short excerpt and identify one thing that may confuse a beginner reader.
 
-## Deploy on Vercel
+### README Review
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+README Review checks whether common documentation sections are present, including:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- project purpose
+- installation
+- prerequisites
+- usage
+- configuration
+- environment variables
+- troubleshooting
+- license
+
+The local AI review uses a different prompt for README files. It looks for one instruction, assumption, or technical term that may make setup difficult for a beginner.
+
+## Why local AI
+
+I wanted to test whether useful writing feedback could continue working when a cloud connection was unavailable.
+
+DraftLocal uses a small Qwen2.5 0.5B model through WebLLM.
+
+The model runs on the user's device through the browser.
+
+No OpenAI, Anthropic, Gemini, or other cloud AI API is used for the local review.
+
+## Offline behavior
+
+The first model setup requires an internet connection because the model must be downloaded by the browser.
+
+After the model has been downloaded and stored by the browser, DraftLocal can load and use the model without a live internet connection.
+
+I tested this by:
+
+1. downloading the model
+2. closing and reopening Chrome
+3. switching Chrome DevTools Network to Offline
+4. loading DraftLocal
+5. enabling Local AI
+6. running a new clarity review
+
+The local AI review still worked.
+
+This means DraftLocal supports offline review after the first model download, as long as the model remains available in browser storage.
+
+## How the app is structured
+
+DraftLocal separates measurable checks from AI-based judgment.
+
+### Rule-based checks
+
+Normal TypeScript and JavaScript handle things that can be measured reliably, such as:
+
+- word count
+- keyword placement
+- heading detection
+- paragraph length
+- sentence length
+- link counts
+- README section detection
+
+### Local AI
+
+The local model handles more subjective questions, such as:
+
+- whether an explanation may confuse a beginner
+- whether README instructions assume too much knowledge
+- whether a technical term is introduced without enough context
+
+This separation is intentional.
+
+Not every writing problem needs a language model.
+
+## Current local AI model
+
+DraftLocal currently uses:
+
+```text
+Qwen2.5 0.5B
