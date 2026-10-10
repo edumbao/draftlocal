@@ -60,6 +60,13 @@ export default function Home() {
   const [aiProgress, setAiProgress] = useState("");
   const [aiError, setAiError] = useState("");
 
+  const [aiReviewStatus, setAiReviewStatus] = useState<
+    "idle" | "reviewing" | "done" | "error"
+  >("idle");
+
+  const [aiReview, setAiReview] = useState("");
+  const [aiReviewError, setAiReviewError] = useState("");
+
   const engineRef = useRef<MLCEngine | null>(null);
 
   const normalizedKeyword = useMemo(
@@ -289,6 +296,83 @@ export default function Home() {
     }
   }
 
+  async function reviewClarityLocally() {
+    if (!engineRef.current) {
+      setAiReviewStatus("error");
+      setAiReviewError("Enable Local AI first.");
+      return;
+    }
+
+    const sourceText =
+      mode === "content"
+        ? content.trim()
+        : readmeContent.trim();
+
+    if (!sourceText) {
+      setAiReviewStatus("error");
+      setAiReviewError(
+        mode === "content"
+          ? "Paste some content first."
+          : "Paste README content first."
+      );
+      return;
+    }
+
+    const shortExcerpt = sourceText
+      .split(/\s+/)
+      .slice(0, 180)
+      .join(" ");
+
+    try {
+      setAiReviewStatus("reviewing");
+      setAiReview("");
+      setAiReviewError("");
+
+      const response =
+        await engineRef.current.chat.completions.create({
+          messages: [
+            {
+              role: "system",
+              content:
+                "You are a concise writing reviewer. Focus only on clarity for beginner readers. Do not rewrite the text. Do not add information that is not present.",
+            },
+            {
+              role: "user",
+              content: `Review the text below.
+
+Identify one thing that may confuse a beginner.
+
+Explain the issue in no more than two short sentences.
+
+Text:
+${shortExcerpt}`,
+            },
+          ],
+          temperature: 0.2,
+          max_tokens: 100,
+        });
+
+      const message =
+        response.choices[0]?.message?.content?.trim();
+
+      setAiReview(
+        message || "The local model returned no feedback."
+      );
+
+      setAiReviewStatus("done");
+    } catch (error) {
+      console.error(error);
+
+      setAiReviewStatus("error");
+
+      setAiReviewError(
+        error instanceof Error
+          ? error.message
+          : "The local clarity review failed."
+      );
+    }
+  }
+
   return (
     <main className="min-h-screen bg-zinc-950 px-6 py-16 text-white">
       <div className="mx-auto max-w-3xl">
@@ -496,15 +580,57 @@ export default function Home() {
           )}
 
           {aiStatus === "ready" && (
-            <div className="mt-5 rounded-lg border border-zinc-700 bg-zinc-950 p-4 text-sm text-zinc-400">
-              <p>Model: Qwen2.5 0.5B</p>
+            <>
+              <div className="mt-5 rounded-lg border border-zinc-700 bg-zinc-950 p-4 text-sm text-zinc-400">
+                <p>Model: Qwen2.5 0.5B</p>
 
-              <p className="mt-1">
-                Processing location: this device
+                <p className="mt-1">
+                  Processing location: this device
+                </p>
+
+                <p className="mt-1">
+                  Cloud AI API: none
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={reviewClarityLocally}
+                disabled={aiReviewStatus === "reviewing"}
+                className="mt-4 w-full rounded-lg border border-zinc-700 bg-zinc-950 px-4 py-3 font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {aiReviewStatus === "reviewing"
+                  ? "Reviewing locally..."
+                  : "Review clarity locally"}
+              </button>
+            </>
+          )}
+
+          {aiReviewStatus === "done" && (
+            <div className="mt-5 rounded-lg border border-blue-900/60 bg-blue-950/20 p-4">
+              <p className="text-sm font-medium text-blue-300">
+                Local AI clarity feedback
               </p>
 
-              <p className="mt-1">
-                Cloud AI API: none
+              <p className="mt-2 text-sm leading-6 text-zinc-300">
+                {aiReview}
+              </p>
+
+              <p className="mt-3 text-xs text-zinc-500">
+                This review uses only a short excerpt and may miss context from
+                the rest of the document.
+              </p>
+            </div>
+          )}
+
+          {aiReviewStatus === "error" && (
+            <div className="mt-5 rounded-lg border border-red-900/60 bg-red-950/30 p-4">
+              <p className="font-medium text-red-300">
+                Clarity review could not run.
+              </p>
+
+              <p className="mt-2 text-sm text-red-200/70">
+                {aiReviewError}
               </p>
             </div>
           )}
@@ -515,7 +641,7 @@ export default function Home() {
             Local processing:
           </strong>{" "}
           Rule-based checks run entirely in your browser. The optional Local AI
-          model is also designed to run on this device after it is downloaded.
+          model also runs on this device after it has been downloaded.
         </div>
       </div>
     </main>
