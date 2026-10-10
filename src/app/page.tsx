@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   CreateMLCEngine,
   type MLCEngine,
@@ -67,7 +67,29 @@ export default function Home() {
   const [aiReview, setAiReview] = useState("");
   const [aiReviewError, setAiReviewError] = useState("");
 
+  const [isOnline, setIsOnline] = useState(true);
+
   const engineRef = useRef<MLCEngine | null>(null);
+
+  useEffect(() => {
+    setIsOnline(navigator.onLine);
+
+    function handleOnline() {
+      setIsOnline(true);
+    }
+
+    function handleOffline() {
+      setIsOnline(false);
+    }
+
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, []);
 
   const normalizedKeyword = useMemo(
     () => keyword.trim().toLowerCase(),
@@ -389,6 +411,34 @@ ${shortExcerpt}`,
           AI service.
         </p>
 
+        <div className="mt-6 grid gap-3 sm:grid-cols-2">
+          <StatusCard
+            label="Internet"
+            value={isOnline ? "Online" : "Offline"}
+            status={isOnline ? "info" : "pass"}
+          />
+
+          <StatusCard
+            label="Local AI"
+            value={
+              aiStatus === "ready"
+                ? "Ready"
+                : aiStatus === "loading"
+                ? "Loading"
+                : aiStatus === "error"
+                ? "Error"
+                : "Not loaded"
+            }
+            status={
+              aiStatus === "ready"
+                ? "pass"
+                : aiStatus === "error"
+                ? "warn"
+                : "info"
+            }
+          />
+        </div>
+
         <div className="mt-10 rounded-2xl border border-zinc-800 bg-zinc-900 p-6">
           <div className="mb-6 flex gap-3">
             <button
@@ -561,8 +611,8 @@ ${shortExcerpt}`,
               </p>
 
               <p className="mt-3 text-xs text-zinc-500">
-                The first load may take several minutes because the model needs
-                to be downloaded and cached.
+                The first model setup usually requires internet access so the
+                model can be downloaded and stored by the browser.
               </p>
             </div>
           )}
@@ -581,17 +631,44 @@ ${shortExcerpt}`,
 
           {aiStatus === "ready" && (
             <>
-              <div className="mt-5 rounded-lg border border-zinc-700 bg-zinc-950 p-4 text-sm text-zinc-400">
-                <p>Model: Qwen2.5 0.5B</p>
+              <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                <StatusCard
+                  label="Model"
+                  value="Qwen2.5 0.5B"
+                  status="info"
+                />
 
-                <p className="mt-1">
-                  Processing location: this device
-                </p>
+                <StatusCard
+                  label="Processing"
+                  value="This device"
+                  status="pass"
+                />
 
-                <p className="mt-1">
-                  Cloud AI API: none
-                </p>
+                <StatusCard
+                  label="Cloud AI API"
+                  value="None"
+                  status="pass"
+                />
+
+                <StatusCard
+                  label="Current session offline review"
+                  value="Ready"
+                  status="pass"
+                />
               </div>
+
+              {!isOnline && (
+                <div className="mt-4 rounded-lg border border-green-900/60 bg-green-950/30 p-4">
+                  <p className="font-medium text-green-300">
+                    Offline mode detected
+                  </p>
+
+                  <p className="mt-1 text-sm text-green-200/70">
+                    The model is already loaded, so local clarity review can
+                    continue without a live cloud connection.
+                  </p>
+                </div>
+              )}
 
               <button
                 type="button"
@@ -640,11 +717,44 @@ ${shortExcerpt}`,
           <strong className="text-zinc-200">
             Local processing:
           </strong>{" "}
-          Rule-based checks run entirely in your browser. The optional Local AI
-          model also runs on this device after it has been downloaded.
+          Rule-based checks run entirely in your browser. Local AI inference
+          also runs on this device after the model has been loaded.
         </div>
       </div>
     </main>
+  );
+}
+
+function StatusCard({
+  label,
+  value,
+  status,
+}: {
+  label: string;
+  value: string;
+  status: ResultStatus;
+}) {
+  const statusClasses = {
+    pass:
+      "border-green-900/60 bg-green-950/30 text-green-300",
+    warn:
+      "border-amber-900/60 bg-amber-950/30 text-amber-300",
+    info:
+      "border-zinc-700 bg-zinc-950 text-zinc-300",
+  };
+
+  return (
+    <div
+      className={`rounded-lg border px-4 py-3 ${statusClasses[status]}`}
+    >
+      <p className="text-xs uppercase tracking-wide opacity-60">
+        {label}
+      </p>
+
+      <p className="mt-1 font-semibold">
+        {value}
+      </p>
+    </div>
   );
 }
 
@@ -895,7 +1005,9 @@ function ResultRow({
         <strong className="shrink-0">{value}</strong>
       </div>
 
-      <p className="mt-1 text-xs opacity-70">{explanation}</p>
+      <p className="mt-1 text-xs opacity-70">
+        {explanation}
+      </p>
     </div>
   );
 }
