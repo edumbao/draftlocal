@@ -70,3 +70,7 @@ It also reinforced the difference between measurable SEO checks and editorial ju
 I want to improve the project documentation, add screenshots, run a final manual test checklist, and decide whether to deploy the app publicly.
 
 I may also experiment with reviewing selected text instead of always using the first 180 words.
+
+## Sponsors
+
+This project is sponsored by https://targetron.com and https://seovapractice.com/ in collaboration with the Entrep Communities in Davao City, Philippines, and is part of the Ed Lab's project at https://edumbao.com/lab/
