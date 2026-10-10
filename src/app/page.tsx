@@ -1,6 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
+import {
+  CreateMLCEngine,
+  type MLCEngine,
+} from "@mlc-ai/web-llm";
 
 type ReviewMode = "content" | "readme";
 type ResultStatus = "pass" | "warn" | "info";
@@ -49,6 +53,15 @@ export default function Home() {
   const [readmeResults, setReadmeResults] =
     useState<ReadmeAnalysisResult | null>(null);
 
+  const [aiStatus, setAiStatus] = useState<
+    "idle" | "loading" | "ready" | "error"
+  >("idle");
+
+  const [aiProgress, setAiProgress] = useState("");
+  const [aiError, setAiError] = useState("");
+
+  const engineRef = useRef<MLCEngine | null>(null);
+
   const normalizedKeyword = useMemo(
     () => keyword.trim().toLowerCase(),
     [keyword]
@@ -90,7 +103,10 @@ export default function Home() {
     const paragraphCount = paragraphs.length;
 
     const longParagraphCount = paragraphs.filter((paragraph) => {
-      const paragraphWords = paragraph.split(/\s+/).filter(Boolean);
+      const paragraphWords = paragraph
+        .split(/\s+/)
+        .filter(Boolean);
+
       return paragraphWords.length > 120;
     }).length;
 
@@ -101,15 +117,18 @@ export default function Home() {
       .filter(Boolean);
 
     const longSentenceCount = sentences.filter((sentence) => {
-      const sentenceWords = sentence.split(/\s+/).filter(Boolean);
+      const sentenceWords = sentence
+        .split(/\s+/)
+        .filter(Boolean);
+
       return sentenceWords.length > 30;
     }).length;
 
     const markdownLinkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
 
-    const links = Array.from(cleanContent.matchAll(markdownLinkRegex)).map(
-      (match) => match[2]
-    );
+    const links = Array.from(
+      cleanContent.matchAll(markdownLinkRegex)
+    ).map((match) => match[2]);
 
     const internalLinkCount = links.filter((url) => {
       return (
@@ -142,7 +161,8 @@ export default function Home() {
     ];
 
     const passedChecks = qualityChecks.filter(Boolean).length;
-    const attentionChecks = qualityChecks.length - passedChecks;
+    const attentionChecks =
+      qualityChecks.length - passedChecks;
 
     setContentResults({
       wordCount: words.length,
@@ -215,7 +235,8 @@ export default function Home() {
     ];
 
     const passedChecks = checks.filter(Boolean).length;
-    const attentionChecks = checks.length - passedChecks;
+    const attentionChecks =
+      checks.length - passedChecks;
 
     setReadmeResults({
       hasPurpose,
@@ -229,6 +250,43 @@ export default function Home() {
       passedChecks,
       attentionChecks,
     });
+  }
+
+  async function enableLocalAI() {
+    if (engineRef.current) {
+      setAiStatus("ready");
+      return;
+    }
+
+    try {
+      setAiStatus("loading");
+      setAiError("");
+      setAiProgress("Starting local AI...");
+
+      const engine = await CreateMLCEngine(
+        "Qwen2.5-0.5B-Instruct-q4f16_1-MLC",
+        {
+          initProgressCallback: (progress) => {
+            setAiProgress(progress.text);
+          },
+        }
+      );
+
+      engineRef.current = engine;
+
+      setAiStatus("ready");
+      setAiProgress("Local AI is ready.");
+    } catch (error) {
+      console.error(error);
+
+      setAiStatus("error");
+
+      setAiError(
+        error instanceof Error
+          ? error.message
+          : "Local AI failed to load."
+      );
+    }
   }
 
   return (
@@ -378,10 +436,86 @@ export default function Home() {
           />
         )}
 
+        <div className="mt-6 rounded-2xl border border-zinc-800 bg-zinc-900 p-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="text-xl font-semibold">
+                Local AI
+              </h2>
+
+              <p className="mt-1 text-sm text-zinc-400">
+                Optional clarity feedback using a small model running on this
+                device.
+              </p>
+            </div>
+
+            {aiStatus === "idle" && (
+              <button
+                type="button"
+                onClick={enableLocalAI}
+                className="rounded-lg bg-white px-4 py-3 text-sm font-medium text-black"
+              >
+                Enable Local AI
+              </button>
+            )}
+
+            {aiStatus === "ready" && (
+              <span className="rounded-lg border border-green-900/60 bg-green-950/30 px-4 py-2 text-sm font-medium text-green-300">
+                Model ready
+              </span>
+            )}
+          </div>
+
+          {aiStatus === "loading" && (
+            <div className="mt-5 rounded-lg border border-zinc-700 bg-zinc-950 p-4">
+              <p className="text-sm font-medium">
+                Loading local model...
+              </p>
+
+              <p className="mt-2 text-sm text-zinc-400">
+                {aiProgress}
+              </p>
+
+              <p className="mt-3 text-xs text-zinc-500">
+                The first load may take several minutes because the model needs
+                to be downloaded and cached.
+              </p>
+            </div>
+          )}
+
+          {aiStatus === "error" && (
+            <div className="mt-5 rounded-lg border border-red-900/60 bg-red-950/30 p-4">
+              <p className="font-medium text-red-300">
+                Local AI could not load.
+              </p>
+
+              <p className="mt-2 text-sm text-red-200/70">
+                {aiError}
+              </p>
+            </div>
+          )}
+
+          {aiStatus === "ready" && (
+            <div className="mt-5 rounded-lg border border-zinc-700 bg-zinc-950 p-4 text-sm text-zinc-400">
+              <p>Model: Qwen2.5 0.5B</p>
+
+              <p className="mt-1">
+                Processing location: this device
+              </p>
+
+              <p className="mt-1">
+                Cloud AI API: none
+              </p>
+            </div>
+          )}
+        </div>
+
         <div className="mt-6 rounded-xl border border-zinc-800 bg-zinc-900/60 p-4 text-sm text-zinc-400">
-          <strong className="text-zinc-200">Local processing:</strong>{" "}
-          These checks run entirely in your browser. No cloud AI service is
-          being used.
+          <strong className="text-zinc-200">
+            Local processing:
+          </strong>{" "}
+          Rule-based checks run entirely in your browser. The optional Local AI
+          model is also designed to run on this device after it is downloaded.
         </div>
       </div>
     </main>
